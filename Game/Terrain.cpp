@@ -170,18 +170,18 @@ void Terrain::generateMeshFromPointCloud() {
         }
     }
 
-    // Step 2b: Fill empty cells with average of neighbors
-    for (int z = 0; z < gridHeight; ++z)
+    // Fill empty cells with average of neighbors
+    for (int z = 0; z < gridHeight; z++)
     {
-        for (int x = 0; x < gridWidth; ++x)
+        for (int x = 0; x < gridWidth; x++)
         {
             if (!hasPoint[z][x])
             {
                 float sum = 0;
                 int count = 0;
-                for (int dz = -1; dz <= 1; ++dz)
+                for (int dz = -1; dz <= 1; dz++)
                 {
-                    for (int dx = -1; dx <= 1; ++dx)
+                    for (int dx = -1; dx <= 1; dx++)
                     {
                         int nx = x + dx;
                         int nz = z + dz;
@@ -202,11 +202,13 @@ void Terrain::generateMeshFromPointCloud() {
     }
 
 
-    // Step 3: Create vertices and indices
+    // Create vertices and indices
     m_vertices.clear();
     m_indices.clear();
-    for (int z = 0; z < gridHeight; ++z) {
-        for (int x = 0; x < gridWidth; ++x) {
+    for (int z = 0; z < gridHeight; z++)
+    {
+        for (int x = 0; x < gridWidth; x++)
+        {
             Vertex v;
             v.pos = glm::vec3(minX + x * m_gridSpacing, heightGrid[z][x], minZ + z * m_gridSpacing);
             v.texCoord = glm::vec2(float(x)/float(gridWidth-1), float(z)/float(gridHeight-1));
@@ -214,8 +216,10 @@ void Terrain::generateMeshFromPointCloud() {
         }
     }
 
-    for (int z = 0; z < gridHeight - 1; ++z) {
-        for (int x = 0; x < gridWidth - 1; ++x) {
+    for (int z = 0; z < gridHeight - 1; z++)
+    {
+        for (int x = 0; x < gridWidth - 1; x++)
+        {
             int topLeft = x + z * gridWidth;
             int topRight = topLeft + 1;
             int bottomLeft = topLeft + gridWidth;
@@ -266,6 +270,21 @@ void Terrain::calculateNormals()
             v.normal = glm::normalize(v.normal);
         else
             v.normal = glm::vec3(0.0f, 1.0f, 0.0f);
+    }
+
+    //------------ Debug line for normals ------------
+    std::vector<glm::vec3> debugLineVertices;
+    debugLineVertices.reserve(m_vertices.size() * 2);
+
+    float normalLength = 0.2f;  // Scale for visibility
+
+    for (const auto& v : m_vertices)
+    {
+        glm::vec3 start = v.pos;
+        glm::vec3 end   = v.pos + v.normal * normalLength;
+
+        debugLineVertices.push_back(start);
+        debugLineVertices.push_back(end);
     }
 }
 

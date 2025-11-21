@@ -285,8 +285,8 @@ void MainWindow::on_action_Open_triggered()
 void MainWindow::onButton1Clicked()
 {
     bbl::EntityID entityID = mVulkanWindow->spawnModel(
-        "../../Assets/Models/Rat_2.0.obj",
-        "../../Assets/Textures/Rat 2.0.png",
+        "../../Assets/Models/Ball2.obj",
+        "../../Assets/Textures/Blue.jpg",
         glm::vec3(10.0f, 00.0f, 0.0f)
         );
 
@@ -298,11 +298,11 @@ void MainWindow::onButton1Clicked()
         entityManager->addComponent<bbl::Audio>(entityID, bbl::Audio{});
 
         if (sceneManager) {
-            sceneManager->setEntityName(entityID, "Rat_2.0");
+            sceneManager->setEntityName(entityID, "Ball");
             sceneManager->markSceneDirty();
         }
 
-        qInfo() << "Spawned viking_room with EntityID:" << entityID;
+        qInfo() << "Spawned ball with EntityID:" << entityID;
     }
 
     mVulkanWindow->recreateSwapChain();

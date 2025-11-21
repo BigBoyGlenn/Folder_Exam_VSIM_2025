@@ -31,6 +31,8 @@
 #include <unordered_map>
 #include <QDebug>
 #include <QKeyEvent>
+
+
 #include "../Core/Utility/BblHub.h"
 #include "../Soundsystem/resourcemanager.h"
 #include "../Editor/MainWindow.h"
@@ -122,6 +124,7 @@ void Renderer::initVulkan() {
         }
     }
 
+    // Spawn terrain
     Terrain* terrain = m_gameWorld.getTerrain();
     if (terrain->loadFromPointCloud("../../Assets/Mapping/lasdata.txt"))
     {
@@ -141,7 +144,6 @@ void Renderer::initVulkan() {
     {
         qWarning() << "Failed to load point cloud!";
     }
-
 
     //createTerrainEntity(&m_gameWorld);
 
