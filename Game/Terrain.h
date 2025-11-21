@@ -6,6 +6,11 @@
 #include <string>
 #include <glm/glm.hpp>
 
+struct Point
+{
+    glm::vec3 pos;
+};
+
 class Terrain
 {
 public:
@@ -16,6 +21,8 @@ public:
                            float heightScale = 0.02f,
                            float gridSpacing = 0.2f,
                            float heightPlacement = -5.0f);
+    bool loadFromPointCloud(const std::string& filepath);
+    void generateMeshFromPointCloud();
 
     float getHeightAt(float worldX, float worldZ, const glm::vec3& terrainPosition = glm::vec3(0.0f)) const;
 
@@ -44,9 +51,8 @@ private:
 
     std::vector<Vertex> m_vertices;
     std::vector<uint32_t> m_indices;
-
-
     std::vector<float> m_heightData;
+    std::vector<Point> m_points;
 };
 
 #endif // TERRAIN_H

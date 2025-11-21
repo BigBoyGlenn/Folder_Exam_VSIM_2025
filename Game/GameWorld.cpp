@@ -9,16 +9,17 @@ bbl::GameWorld::GameWorld()
 
 void bbl::GameWorld::Setup()
 {
-    if (m_terrain->loadFromHeightmap("../../Assets/Textures/heightmap.jpg", 0.15f, 1.f, 0.0f))
+    // m_terrain->loadFromHeightmap("../../Assets/Textures/heightmap.jpg", 0.15f, 1.f, 0.0f);
+
+
+    if (m_terrain->loadFromPointCloud("../../Assets/Mapping/lasdata.txt"))
     {
         m_terrainLoaded = true;
-        qDebug() << "Terrain loaded successfully!";
-    }
-    else
+        qDebug() << "Point cloud terrain loaded successfully!";
+    } else
     {
-        qWarning() << "Failed to load terrain!";
+        qWarning() << "Failed to load point cloud terrain!";
     }
-
 }
 
 void bbl::GameWorld::initializeSystems(EntityManager* entityManager)
