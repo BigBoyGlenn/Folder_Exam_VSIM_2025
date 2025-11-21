@@ -263,7 +263,7 @@ void Terrain::calculateNormals()
     for (auto& v : m_vertices)
     {
         if (glm::length(v.normal) > 0.0f)
-            v.normal = glm::normalize(-v.normal);
+            v.normal = glm::normalize(v.normal);
         else
             v.normal = glm::vec3(0.0f, 1.0f, 0.0f);
     }

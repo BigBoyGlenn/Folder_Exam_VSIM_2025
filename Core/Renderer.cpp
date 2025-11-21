@@ -123,17 +123,25 @@ void Renderer::initVulkan() {
     }
 
     Terrain* terrain = m_gameWorld.getTerrain();
-    if (terrain->loadFromPointCloud("../../Assets/Mapping/lasdata.txt")) {
+    if (terrain->loadFromPointCloud("../../Assets/Mapping/lasdata.txt"))
+    {
         terrain->generateMeshFromPointCloud();
 
-        if (!terrain->getVertices().empty() && !terrain->getIndices().empty()) {
+        if (!terrain->getVertices().empty() && !terrain->getIndices().empty())
+        {
             createTerrainEntity(&m_gameWorld); // spawns mesh
-        } else {
+
+        }
+        else
+        {
             qWarning() << "No vertices/indices generated from point cloud!";
         }
-    } else {
+    }
+    else
+    {
         qWarning() << "Failed to load point cloud!";
     }
+
 
     //createTerrainEntity(&m_gameWorld);
 
@@ -301,6 +309,10 @@ void Renderer::createTerrainEntity(bbl::GameWorld* gameWorld) {
     // Create entity using new ECS system
     bbl::EntityID entity = entityManager->createEntityFromMesh(terrainMeshData, glm::vec3(0.0f));
 
+    if (auto* transform = entityManager->getComponent<bbl::Transform>(entity)) {
+        // Flip it!!!!!!!!!!
+        transform->rotation.x += glm::radians(180.0f);
+    }
     if (auto* meshComp = entityManager->getComponent<bbl::Mesh>(entity)) {
         meshComp->modelPath = "../../Assets/Textures/heightmap.jpg";
         meshComp->meshIndex = 0;  // Could store heightmap parameters here later
@@ -889,7 +901,7 @@ void Renderer::createGraphicsPipeline(std::string vertPath, std::string fragPath
     VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
     vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     VkVertexInputBindingDescription bindingDescription = Vertex::getBindingDescription();
-    std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = Vertex::getAttributeDescriptions();
+    std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = Vertex::getAttributeDescriptions();
     vertexInputInfo.vertexBindingDescriptionCount = 1;
     vertexInputInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputInfo.pVertexBindingDescriptions = &bindingDescription;
