@@ -122,12 +122,12 @@ void Terrain::generateMesh(unsigned char* textureData)
             uint32_t bottomRight = bottomLeft + 1;
 
             m_indices.push_back(topLeft);
-            m_indices.push_back(bottomRight);
             m_indices.push_back(bottomLeft);
+            m_indices.push_back(bottomRight);
 
             m_indices.push_back(topLeft);
-            m_indices.push_back(topRight);
             m_indices.push_back(bottomRight);
+            m_indices.push_back(topRight);
         }
     }
 
@@ -135,42 +135,100 @@ void Terrain::generateMesh(unsigned char* textureData)
 }
 
 //----------- Generate mesh from point cloud -------------------
-void Terrain::generateMeshFromPointCloud()
-{
-    m_vertices.clear();
-    m_indices.clear();
-
-    if (m_points.empty())
-    {
-        qWarning() << "Cannot generate mesh: point cloud is empty!";
-        return;
+void Terrain::generateMeshFromPointCloud() {
+    // Step 1: Determine bounds
+    float minX = std::numeric_limits<float>::max();
+    float minZ = std::numeric_limits<float>::max();
+    float maxX = std::numeric_limits<float>::lowest();
+    float maxZ = std::numeric_limits<float>::lowest();
+    for (auto& p : m_points) {
+        minX = std::min(minX, p.pos.x);
+        minZ = std::min(minZ, p.pos.z);
+        maxX = std::max(maxX, p.pos.x);
+        maxZ = std::max(maxZ, p.pos.z);
     }
 
-    // Step 1: Create vertices
-    for (const auto& p : m_points)
-    {
-        Vertex v{};
-        v.pos = p.pos;
-        v.color = glm::vec3(1.0f, 1.0f, 1.0f); // Default white
-        v.normal = glm::vec3(0.0f, 1.0f, 0.0f); // Recalculate later
-        v.texCoord = glm::vec2((p.pos.x - 0.0f) / 10.0f, (p.pos.z - 0.0f) / 10.0f); // UV mapping
-        m_vertices.push_back(v);
-    }
+    int gridWidth = static_cast<int>((maxX - minX) / m_gridSpacing) + 1;
+    int gridHeight = static_cast<int>((maxZ - minZ) / m_gridSpacing) + 1;
+    std::vector<std::vector<float>> heightGrid(gridHeight, std::vector<float>(gridWidth, m_heightPlacement));
 
-    if (m_vertices.size() >= 3) {
-        for (size_t i = 1; i < m_vertices.size() - 1; i++)
+    // Step 2: Populate grid
+    std::vector<std::vector<bool>> hasPoint(gridHeight, std::vector<bool>(gridWidth, false));
+
+    for (auto& p : m_points)
+    {
+        int gx = static_cast<int>((p.pos.x - minX) / m_gridSpacing);
+        int gz = static_cast<int>((p.pos.z - minZ) / m_gridSpacing);
+
+        if (!hasPoint[gz][gx])
         {
-            m_indices.push_back(0);
-            m_indices.push_back(i);
-            m_indices.push_back(i + 1);
+            heightGrid[gz][gx] = p.pos.y;
+            hasPoint[gz][gx] = true;
+        } else
+        {
+            heightGrid[gz][gx] = std::max(heightGrid[gz][gx], p.pos.y);
         }
     }
 
-    // Calculates normals
-    calculateNormals();
+    // Step 2b: Fill empty cells with average of neighbors
+    for (int z = 0; z < gridHeight; ++z)
+    {
+        for (int x = 0; x < gridWidth; ++x)
+        {
+            if (!hasPoint[z][x])
+            {
+                float sum = 0;
+                int count = 0;
+                for (int dz = -1; dz <= 1; ++dz)
+                {
+                    for (int dx = -1; dx <= 1; ++dx)
+                    {
+                        int nx = x + dx;
+                        int nz = z + dz;
+                        if (nx >= 0 && nx < gridWidth && nz >= 0 && nz < gridHeight && hasPoint[nz][nx])
+                        {
+                            sum += heightGrid[nz][nx];
+                            count++;
+                        }
+                    }
+                }
+                if (count > 0)
+                {
+                    heightGrid[z][x] = sum / count;
+                    hasPoint[z][x] = true;
+                }
+            }
+        }
+    }
 
-    qDebug() << "Generated mesh from point cloud:" << m_vertices.size() << "vertices," << m_indices.size() << "indices.";
+
+    // Step 3: Create vertices and indices
+    m_vertices.clear();
+    m_indices.clear();
+    for (int z = 0; z < gridHeight; ++z) {
+        for (int x = 0; x < gridWidth; ++x) {
+            Vertex v;
+            v.pos = glm::vec3(minX + x * m_gridSpacing, heightGrid[z][x], minZ + z * m_gridSpacing);
+            v.texCoord = glm::vec2(float(x)/float(gridWidth-1), float(z)/float(gridHeight-1));
+            m_vertices.push_back(v);
+        }
+    }
+
+    for (int z = 0; z < gridHeight - 1; ++z) {
+        for (int x = 0; x < gridWidth - 1; ++x) {
+            int topLeft = x + z * gridWidth;
+            int topRight = topLeft + 1;
+            int bottomLeft = topLeft + gridWidth;
+            int bottomRight = bottomLeft + 1;
+            // Two triangles per quad
+            m_indices.push_back(topLeft); m_indices.push_back(bottomRight); m_indices.push_back(bottomLeft);
+            m_indices.push_back(topLeft); m_indices.push_back(topRight); m_indices.push_back(bottomRight);
+        }
+    }
+
+    calculateNormals();
 }
+
 
 //---------------- Normals for heightmap mesh -----------------
 void Terrain::calculateNormals()
@@ -205,7 +263,7 @@ void Terrain::calculateNormals()
     for (auto& v : m_vertices)
     {
         if (glm::length(v.normal) > 0.0f)
-            v.normal = glm::normalize(v.normal);
+            v.normal = glm::normalize(-v.normal);
         else
             v.normal = glm::vec3(0.0f, 1.0f, 0.0f);
     }
