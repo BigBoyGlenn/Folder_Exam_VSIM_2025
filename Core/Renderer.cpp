@@ -124,6 +124,8 @@ void Renderer::initVulkan() {
 
     //createTerrainEntity(&m_gameWorld);
 
+    spawnModel("../../Assets/Models/output.obj","../../Assets/Textures/heightmap_terrain.png",{0.0f,0.0f,0.0f});
+
     qDebug() << "How many entities in the scene?:" << entityManager->getEntityCount();
 
     createUniformBuffers();
