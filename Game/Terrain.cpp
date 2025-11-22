@@ -149,9 +149,10 @@ void Terrain::generateMeshFromPointCloud() {
             int topRight = topLeft + 1;
             int bottomLeft = topLeft + gridWidth;
             int bottomRight = bottomLeft + 1;
-            // Two triangles per quad
-            m_indices.push_back(topLeft); m_indices.push_back(bottomRight); m_indices.push_back(bottomLeft);
-            m_indices.push_back(topLeft); m_indices.push_back(topRight); m_indices.push_back(bottomRight);
+            // Two triangles per quad (CCW)
+            m_indices.push_back(topLeft); m_indices.push_back(bottomLeft); m_indices.push_back(bottomRight);
+            m_indices.push_back(topLeft); m_indices.push_back(bottomRight); m_indices.push_back(topRight);
+
         }
     }
 
@@ -195,21 +196,6 @@ void Terrain::calculateNormals()
             v.normal = glm::normalize(v.normal);
         else
             v.normal = glm::vec3(0.0f, 1.0f, 0.0f);
-    }
-
-    //------------ Debug line for normals ------------
-    std::vector<glm::vec3> debugLineVertices;
-    debugLineVertices.reserve(m_vertices.size() * 2);
-
-    float normalLength = 0.2f;  // Scale for visibility
-
-    for (const auto& v : m_vertices)
-    {
-        glm::vec3 start = v.pos;
-        glm::vec3 end   = v.pos + v.normal * normalLength;
-
-        debugLineVertices.push_back(start);
-        debugLineVertices.push_back(end);
     }
 }
 
