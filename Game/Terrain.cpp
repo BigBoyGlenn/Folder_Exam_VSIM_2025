@@ -11,38 +11,11 @@
 
 
 //--------------- Constructor / Destructor -----------------
-Terrain::Terrain() : m_width(0), m_height(0), m_channels(0),
+Terrain::Terrain() : m_width(0), m_height(0),
     m_heightScale(0.02f), m_gridSpacing(0.2f), m_heightPlacement(-5.0f)
 {}
 
 Terrain::~Terrain() {}
-
-
-//------------- Load from heightmap-----------------
-bool Terrain::loadFromHeightmap(const std::string& filepath,
-                                float heightScale,
-                                float gridSpacing,
-                                float heightPlacement)
-{
-    m_heightScale = heightScale;
-    m_gridSpacing = gridSpacing;
-    m_heightPlacement = heightPlacement;
-
-    stbi_uc* pixelData = stbi_load(filepath.c_str(), &m_width, &m_height, &m_channels, STBI_rgb_alpha);
-    if (!pixelData)
-    {
-        qWarning() << "Failed to load heightmap:" << QString::fromStdString(filepath);
-        return false;
-    }
-
-    generateMesh(pixelData);
-    stbi_image_free(pixelData);
-
-    qDebug() << "Heightmap terrain generated:" << m_vertices.size() << "vertices,"
-             << m_indices.size() / 3 << "triangles";
-    return true;
-}
-
 
 //----------- Load from point cloud txt file ---------------
 bool Terrain::loadFromPointCloud(const std::string& filepath)
@@ -77,61 +50,6 @@ bool Terrain::loadFromPointCloud(const std::string& filepath)
 
     qDebug() << "Loaded point cloud with" << m_points.size() << "points.";
     return !m_points.empty();
-}
-
-
-//---------- Generate mesh from heightmap pixels --------------------
-void Terrain::generateMesh(unsigned char* textureData)
-{
-    m_vertices.clear();
-    m_indices.clear();
-    m_heightData.clear();
-
-    m_vertices.reserve(m_width * m_height);
-    m_heightData.reserve(m_width * m_height);
-
-    float vertexXStart = -m_width * m_gridSpacing / 2.0f;
-    float vertexZStart = m_height * m_gridSpacing / 2.0f;
-
-    for (int d = 0; d < m_height; d++)
-    {
-        for (int w = 0; w < m_width; w++)
-        {
-            int index = (w + d * m_width) * 4;
-            float height = static_cast<float>(textureData[index]) * m_heightScale + m_heightPlacement;
-            m_heightData.push_back(height);
-
-            Vertex vertex{};
-            vertex.pos = glm::vec3(vertexXStart + w * m_gridSpacing, height, vertexZStart - d * m_gridSpacing);
-
-            float normalizedHeight = (height - m_heightPlacement) / (255.0f * m_heightScale);
-            vertex.color = glm::vec3(normalizedHeight, normalizedHeight * 0.8f, normalizedHeight * 0.6f);
-
-            vertex.texCoord = glm::vec2(w / float(m_width - 1), d / float(m_height - 1));
-            m_vertices.push_back(vertex);
-        }
-    }
-
-    // Triangles
-    m_indices.reserve((m_width - 1) * (m_height - 1) * 6);
-    for (int d = 0; d < m_height - 1; ++d) {
-        for (int w = 0; w < m_width - 1; ++w) {
-            uint32_t topLeft = w + d * m_width;
-            uint32_t topRight = topLeft + 1;
-            uint32_t bottomLeft = topLeft + m_width;
-            uint32_t bottomRight = bottomLeft + 1;
-
-            m_indices.push_back(topLeft);
-            m_indices.push_back(bottomLeft);
-            m_indices.push_back(bottomRight);
-
-            m_indices.push_back(topLeft);
-            m_indices.push_back(bottomRight);
-            m_indices.push_back(topRight);
-        }
-    }
-
-    calculateNormals();
 }
 
 //----------- Generate mesh from point cloud -------------------
@@ -172,6 +90,7 @@ void Terrain::generateMeshFromPointCloud() {
         {
             heightGrid[gz][gx] = std::max(heightGrid[gz][gx], p.pos.y);
         }
+
     }
 
     // Fill empty cells with average of neighbors
@@ -329,39 +248,42 @@ glm::vec3 Terrain::getCenter() const
 //------------ Terrain height ------------------------
 float Terrain::getHeightAt(float worldX, float worldZ, const glm::vec3& terrainPosition) const
 {
-    if (m_vertices.empty())
+    if (m_vertices.empty() || m_heightData.empty())
         return m_heightPlacement;
 
-    float localX = worldX - terrainPosition.x;
-    float localZ = worldZ - terrainPosition.z;
+    // Center the grid using the same offset as generateMesh()
+    float offsetX = -m_width * m_gridSpacing / 2.0f;
+    float offsetZ = m_height * m_gridSpacing / 2.0f;
 
-    // Convert world-coordinates to grid indices
-    float originX = m_vertices[0].pos.x;
-    float originZ = m_vertices[0].pos.z;
+    float localWorldX = worldX - terrainPosition.x;
+    float localWorldZ = worldZ - terrainPosition.z;
 
-    int gridX = int((localX - originX) / m_gridSpacing);
-    int gridZ = int((localZ - originZ) / m_gridSpacing);
+    float localX = localWorldX - offsetX;
+    float localZ = -(localWorldZ - offsetZ);
+
+    int gridX = static_cast<int>(std::floor(localX / m_gridSpacing));
+    int gridZ = static_cast<int>(std::floor(localZ / m_gridSpacing));
 
     if (gridX < 0 || gridZ < 0 || gridX >= m_width - 1 || gridZ >= m_height - 1)
         return m_heightPlacement;
 
-    float fracX = ((localX - originX) / m_gridSpacing) - gridX;
-    float fracZ = ((localZ - originZ) / m_gridSpacing) - gridZ;
-
-    int i0 = gridX + gridZ * m_width;
+    float xCoord = (localX / m_gridSpacing) - gridX;
+    float zCoord = (localZ / m_gridSpacing) - gridZ;
+    xCoord = glm::clamp(xCoord, 0.0f, 1.0f);
+    zCoord = glm::clamp(zCoord, 0.0f, 1.0f);
 
     glm::vec3 a, b, c;
-    if (fracX + fracZ <= 1.0f)
-    {
-        a = m_vertices[i0].pos;
-        b = m_vertices[i0 + 1].pos;
-        c = m_vertices[i0 + m_width].pos;
-    } else
-    {
-        a = m_vertices[i0 + 1 + m_width].pos;
-        b = m_vertices[i0 + m_width].pos;
-        c = m_vertices[i0 + 1].pos;
+    int topLeftIndex = gridX + gridZ * m_width;
+
+    if (xCoord + zCoord <= 1.0f) {
+        a = m_vertices[topLeftIndex].pos;
+        b = m_vertices[topLeftIndex + 1].pos;
+        c = m_vertices[topLeftIndex + m_width].pos;
+    } else {
+        a = m_vertices[topLeftIndex + 1 + m_width].pos;
+        b = m_vertices[topLeftIndex + m_width].pos;
+        c = m_vertices[topLeftIndex + 1].pos;
     }
 
-    return barycentric(glm::vec2(localX, localZ), a, b, c);
+    return barycentric(glm::vec2(localWorldX, localWorldZ), a, b, c);
 }

@@ -9,9 +9,6 @@ bbl::GameWorld::GameWorld()
 
 void bbl::GameWorld::Setup()
 {
-    // m_terrain->loadFromHeightmap("../../Assets/Textures/heightmap.jpg", 0.15f, 1.f, 0.0f);
-
-
     if (m_terrain->loadFromPointCloud("../../Assets/Mapping/lasdata.txt"))
     {
         m_terrain->generateMeshFromPointCloud();
