@@ -14,6 +14,7 @@ void bbl::GameWorld::Setup()
 
     if (m_terrain->loadFromPointCloud("../../Assets/Mapping/lasdata.txt"))
     {
+        m_terrain->generateMeshFromPointCloud();
         m_terrainLoaded = true;
         qDebug() << "Point cloud terrain loaded successfully!";
     } else

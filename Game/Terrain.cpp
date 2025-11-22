@@ -136,7 +136,7 @@ void Terrain::generateMesh(unsigned char* textureData)
 
 //----------- Generate mesh from point cloud -------------------
 void Terrain::generateMeshFromPointCloud() {
-    // Step 1: Determine bounds
+    // Determine bounds
     float minX = std::numeric_limits<float>::max();
     float minZ = std::numeric_limits<float>::max();
     float maxX = std::numeric_limits<float>::lowest();
@@ -150,9 +150,13 @@ void Terrain::generateMeshFromPointCloud() {
 
     int gridWidth = static_cast<int>((maxX - minX) / m_gridSpacing) + 1;
     int gridHeight = static_cast<int>((maxZ - minZ) / m_gridSpacing) + 1;
+    m_width = gridWidth;
+    m_height = gridHeight;
+    m_heightData.clear();
+    m_heightData.reserve(m_width * m_height);
     std::vector<std::vector<float>> heightGrid(gridHeight, std::vector<float>(gridWidth, m_heightPlacement));
 
-    // Step 2: Populate grid
+    // Populate grid
     std::vector<std::vector<bool>> hasPoint(gridHeight, std::vector<bool>(gridWidth, false));
 
     for (auto& p : m_points)
@@ -212,7 +216,9 @@ void Terrain::generateMeshFromPointCloud() {
             Vertex v;
             v.pos = glm::vec3(minX + x * m_gridSpacing, heightGrid[z][x], minZ + z * m_gridSpacing);
             v.texCoord = glm::vec2(float(x)/float(gridWidth-1), float(z)/float(gridHeight-1));
+            v.color = glm::vec3(0.4f, 0.8f, 0.4f);
             m_vertices.push_back(v);
+            m_heightData.push_back(heightGrid[z][x]);
         }
     }
 
@@ -323,42 +329,39 @@ glm::vec3 Terrain::getCenter() const
 //------------ Terrain height ------------------------
 float Terrain::getHeightAt(float worldX, float worldZ, const glm::vec3& terrainPosition) const
 {
-    if (m_vertices.empty() || m_heightData.empty())
+    if (m_vertices.empty())
         return m_heightPlacement;
 
-    // Center the grid using the same offset as generateMesh()
-    float offsetX = -m_width * m_gridSpacing / 2.0f;
-    float offsetZ = m_height * m_gridSpacing / 2.0f;
+    float localX = worldX - terrainPosition.x;
+    float localZ = worldZ - terrainPosition.z;
 
-    float localWorldX = worldX - terrainPosition.x;
-    float localWorldZ = worldZ - terrainPosition.z;
+    // Convert world-coordinates to grid indices
+    float originX = m_vertices[0].pos.x;
+    float originZ = m_vertices[0].pos.z;
 
-    float localX = localWorldX - offsetX;
-    float localZ = -(localWorldZ - offsetZ);
-
-    int gridX = static_cast<int>(std::floor(localX / m_gridSpacing));
-    int gridZ = static_cast<int>(std::floor(localZ / m_gridSpacing));
+    int gridX = int((localX - originX) / m_gridSpacing);
+    int gridZ = int((localZ - originZ) / m_gridSpacing);
 
     if (gridX < 0 || gridZ < 0 || gridX >= m_width - 1 || gridZ >= m_height - 1)
         return m_heightPlacement;
 
-    float xCoord = (localX / m_gridSpacing) - gridX;
-    float zCoord = (localZ / m_gridSpacing) - gridZ;
-    xCoord = glm::clamp(xCoord, 0.0f, 1.0f);
-    zCoord = glm::clamp(zCoord, 0.0f, 1.0f);
+    float fracX = ((localX - originX) / m_gridSpacing) - gridX;
+    float fracZ = ((localZ - originZ) / m_gridSpacing) - gridZ;
+
+    int i0 = gridX + gridZ * m_width;
 
     glm::vec3 a, b, c;
-    int topLeftIndex = gridX + gridZ * m_width;
-
-    if (xCoord + zCoord <= 1.0f) {
-        a = m_vertices[topLeftIndex].pos;
-        b = m_vertices[topLeftIndex + 1].pos;
-        c = m_vertices[topLeftIndex + m_width].pos;
-    } else {
-        a = m_vertices[topLeftIndex + 1 + m_width].pos;
-        b = m_vertices[topLeftIndex + m_width].pos;
-        c = m_vertices[topLeftIndex + 1].pos;
+    if (fracX + fracZ <= 1.0f)
+    {
+        a = m_vertices[i0].pos;
+        b = m_vertices[i0 + 1].pos;
+        c = m_vertices[i0 + m_width].pos;
+    } else
+    {
+        a = m_vertices[i0 + 1 + m_width].pos;
+        b = m_vertices[i0 + m_width].pos;
+        c = m_vertices[i0 + 1].pos;
     }
 
-    return barycentric(glm::vec2(localWorldX, localWorldZ), a, b, c);
+    return barycentric(glm::vec2(localX, localZ), a, b, c);
 }

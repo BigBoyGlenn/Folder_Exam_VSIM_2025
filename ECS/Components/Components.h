@@ -100,46 +100,6 @@ struct Physics
     bool useGravity{true};
 };
 
-// struct Input
-// {
-//     // Movement keys
-//     bool W{false};
-//     bool A{false};
-//     bool S{false};
-//     bool D{false};
-
-//     // Arrow keys
-//     bool UP{false};
-//     bool DOWN{false};
-//     bool LEFT{false};
-//     bool RIGHT{false};
-
-//     // Action keys
-//     bool Q{false};
-//     bool E{false};
-//     bool R{false};
-//     bool C{false};
-
-//     // Modifier keys
-//     bool LSHIFT{false};
-//     bool LCTRL{false};
-//     bool SPACE{false};
-
-//     // Mouse buttons
-//     bool LMB{false};   // Left Mouse Button
-//     bool RMB{false};   // Right Mouse Button
-//     bool MMB{false};   // Middle Mouse Button
-//     bool MB4{false};   // Mouse Button 4
-//     bool MB5{false};   // Mouse Button 5
-
-//     // Mouse data
-//     float mouseWheelDelta{0.0f};
-//     int mouseX{0};
-//     int mouseY{0};
-//     int mouseDeltaX{0};  // Added for mouse movement
-//     int mouseDeltaY{0};  // Added for mouse movement
-// };
-
 } // namespace bbl
 
 #endif // COMPONENT_H

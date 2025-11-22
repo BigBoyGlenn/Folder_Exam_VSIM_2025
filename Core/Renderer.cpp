@@ -311,14 +311,6 @@ void Renderer::createTerrainEntity(bbl::GameWorld* gameWorld) {
     // Create entity using new ECS system
     bbl::EntityID entity = entityManager->createEntityFromMesh(terrainMeshData, glm::vec3(0.0f));
 
-    if (auto* transform = entityManager->getComponent<bbl::Transform>(entity)) {
-        // Flip it!!!!!!!!!!
-        transform->rotation.x += glm::radians(180.0f);
-    }
-    /*if (auto* meshComp = entityManager->getComponent<bbl::Mesh>(entity)) {
-        meshComp->modelPath = "../../Assets/Textures/heightmap.jpg";
-        meshComp->meshIndex = 0;  // Could store heightmap parameters here later
-    }*/
     // Add terrain texture
     size_t textureResourceID = GPUresources->uploadTexture("../../Assets/Textures/volcan.png");
     if (textureResourceID != 0) {
