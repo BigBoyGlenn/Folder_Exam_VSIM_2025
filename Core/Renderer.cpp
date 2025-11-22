@@ -125,7 +125,7 @@ void Renderer::initVulkan() {
     }
 
     // Spawn terrain
-    Terrain* terrain = m_gameWorld.getTerrain();
+   /* Terrain* terrain = m_gameWorld.getTerrain();
     if (terrain->loadFromPointCloud("../../Assets/Mapping/lasdata.txt"))
     {
         terrain->generateMeshFromPointCloud();
@@ -143,9 +143,9 @@ void Renderer::initVulkan() {
     else
     {
         qWarning() << "Failed to load point cloud!";
-    }
+    }*/
 
-    //createTerrainEntity(&m_gameWorld);
+    createTerrainEntity(&m_gameWorld);
 
     //spawnModel("../../Assets/Models/output.obj","../../Assets/Textures/heightmap_terrain.png",{0.0f,0.0f,0.0f});
 
