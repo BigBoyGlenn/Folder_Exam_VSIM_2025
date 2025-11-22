@@ -237,39 +237,44 @@ float Terrain::getHeightAt(float worldX, float worldZ, const glm::vec3& terrainP
     if (m_vertices.empty() || m_heightData.empty())
         return m_heightPlacement;
 
-    // Center the grid using the same offset as generateMesh()
+    // Centering the terrain
     float offsetX = -m_width * m_gridSpacing / 2.0f;
-    float offsetZ = m_height * m_gridSpacing / 2.0f;
+    float offsetZ = -m_height * m_gridSpacing / 2.0f;
 
-    float localWorldX = worldX - terrainPosition.x;
-    float localWorldZ = worldZ - terrainPosition.z;
+    // Convert world coordinates to local terrain coordinates
+    float localX = worldX - terrainPosition.x - offsetX;
+    float localZ = worldZ - terrainPosition.z - offsetZ;
 
-    float localX = localWorldX - offsetX;
-    float localZ = -(localWorldZ - offsetZ);
-
+    // Determine which grid cell we are in
     int gridX = static_cast<int>(std::floor(localX / m_gridSpacing));
     int gridZ = static_cast<int>(std::floor(localZ / m_gridSpacing));
 
-    if (gridX < 0 || gridZ < 0 || gridX >= m_width - 1 || gridZ >= m_height - 1)
-        return m_heightPlacement;
+    // Clamp to edges
+    gridX = glm::clamp(gridX, 0, m_width - 2);
+    gridZ = glm::clamp(gridZ, 0, m_height - 2);
 
-    float xCoord = (localX / m_gridSpacing) - gridX;
-    float zCoord = (localZ / m_gridSpacing) - gridZ;
-    xCoord = glm::clamp(xCoord, 0.0f, 1.0f);
-    zCoord = glm::clamp(zCoord, 0.0f, 1.0f);
+    // Local coordinates within the cell
+    float xCoord = (localX - gridX * m_gridSpacing) / m_gridSpacing;
+    float zCoord = (localZ - gridZ * m_gridSpacing) / m_gridSpacing;
 
-    glm::vec3 a, b, c;
+    // Get indices of the corners
     int topLeftIndex = gridX + gridZ * m_width;
+    glm::vec3 a, b, c;
 
-    if (xCoord + zCoord <= 1.0f) {
+    // Determine which triangle
+    if (xCoord + zCoord <= 1.0f)
+    {
         a = m_vertices[topLeftIndex].pos;
         b = m_vertices[topLeftIndex + 1].pos;
         c = m_vertices[topLeftIndex + m_width].pos;
-    } else {
+    }
+    else
+    {
         a = m_vertices[topLeftIndex + 1 + m_width].pos;
         b = m_vertices[topLeftIndex + m_width].pos;
         c = m_vertices[topLeftIndex + 1].pos;
     }
 
-    return barycentric(glm::vec2(localWorldX, localWorldZ), a, b, c);
+    // Smooth out height on terrain
+    return barycentric(glm::vec2(worldX - terrainPosition.x, worldZ - terrainPosition.z), a, b, c);
 }
