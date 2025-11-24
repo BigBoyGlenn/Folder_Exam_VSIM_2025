@@ -22,25 +22,24 @@ void PhysicsSystem::update(float dt)
         if (!physics || !transform || !collision) continue;
 
         // Gravity
-        physics->acceleration = m_gravity;
+        glm::vec3 a = m_gravity;
 
         // Project gravity along the terrain slope
         if (collision->isGrounded && m_terrain)
         {
-            glm::vec3 terrainNormal = m_terrain->getNormalAt(transform->position.x, transform->position.z);
-            glm::vec3 gravityAlongSurface = m_gravity - glm::dot(m_gravity, terrainNormal) * terrainNormal;
-            physics->acceleration = gravityAlongSurface;
-        }
+            glm::vec3 n = m_terrain->getNormalAt(transform->position.x, transform->position.z);
 
-        // Integrate velocity and position
-        physics->velocity += physics->acceleration * dt;
-        transform->position += physics->velocity * dt;
-
-        // Rolling friction
-        if (collision->isGrounded)
-        {
-            physics->velocity *= 0.98f;
+            float nx=n.x;
+            float ny=n.y;
+            float nz=n.z;
+            float g = glm::length(m_gravity);
+            //(9.14)
+            a= glm::vec3(g*(nx*ny), g*(ny*ny-1.0f), g*(nz*ny));
         }
+        //(9.16)
+        physics->velocity = physics->velocity +a*dt;
+        //(9.17)
+        transform->position=transform->position+physics->velocity*dt;
     }
 }
 

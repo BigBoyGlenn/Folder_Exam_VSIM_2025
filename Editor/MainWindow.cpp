@@ -287,7 +287,7 @@ void MainWindow::onButton1Clicked()
     bbl::EntityID entityID = mVulkanWindow->spawnModel(
         "../../Assets/Models/Ball2.obj",
         "../../Assets/Textures/Blue.jpg",
-        glm::vec3(10.0f, 100.0f, 0.0f)
+        glm::vec3(-60.0f, 10.0f, -60.0f)
         );
 
     auto* entityManager = mVulkanWindow->getEntityManager();
@@ -314,8 +314,59 @@ void MainWindow::onButton1Clicked()
 
 void MainWindow::onButton2Clicked()
 {
+    auto* entityManager = mVulkanWindow->getEntityManager();
+    auto* sceneManager  = mVulkanWindow->getSceneManager();
+
+    if (!entityManager) return;
+
+    const int rows = 5;
+    const int cols = 5;
+    const float spacing = 40.0f;
+
+    int count = 0;
+
+    for (int r = 0; r < rows; r++)
+    {
+        for (int c = 0; c < cols; c++)
+        {
+            // Centered around origin
+            float x = (c - (cols - 1) * 0.5f) * spacing;
+            float y = 10.0f;
+            float z = (r - (rows - 1) * 0.5f) * spacing;
+
+            bbl::EntityID entityID = mVulkanWindow->spawnModel(
+                "../../Assets/Models/Ball2.obj",
+                "../../Assets/Textures/Blue.jpg",
+                glm::vec3(x, y, z)
+                );
+
+            if (entityID == bbl::INVALID_ENTITY)
+                continue;
+
+            // Add components
+            entityManager->addComponent<bbl::Physics>(entityID, bbl::Physics{});
+            entityManager->addComponent<bbl::Collision>(entityID, bbl::Collision{});
+            entityManager->addComponent<bbl::Audio>(entityID, bbl::Audio{});
+
+            // Name and notify scene
+            if (sceneManager) {
+                sceneManager->setEntityName(entityID, "Ball");
+            }
+
+            count++;
+        }
+    }
+
+    if (sceneManager)
+        sceneManager->markSceneDirty();
+
+    qInfo() << "Spawned" << count << "balls.";
+
+    mVulkanWindow->recreateSwapChain();
+    mVulkanWindow->requestUpdate();
     updateSceneObjectList();
 }
+
 
 void MainWindow::onSceneObjectSelected(QListWidgetItem* item)
 {
@@ -729,6 +780,8 @@ void MainWindow::onPlayToggled()
     playButton->setStyleSheet(playButtonStyle(isPlaying));
 
     qInfo() << (isPlaying ? "Play mode started." : "Play mode stopped.");
+
+    mVulkanWindow->getGameWorld()->setPlaying(isPlaying);
 }
 
 void MainWindow::on_action_NewScene_triggered()

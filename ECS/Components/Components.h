@@ -90,6 +90,7 @@ struct Collision
     bool isColliding{false};
     bool isTrigger{false};
     bool isStatic{false};
+    bool ignoreTerrain{false};
 };
 
 struct Physics

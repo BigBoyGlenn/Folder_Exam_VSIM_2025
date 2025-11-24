@@ -35,7 +35,10 @@ void CollisionSystem::update(float dt)
             Collision* collision = m_entityManager->getComponent<Collision>(entity);
 
             if (transform && collision) {
+                if(!collision->ignoreTerrain)
+                {
                 checkTerrainCollision(entity, transform, collision);
+                }
             }
         }
     }

@@ -127,7 +127,22 @@ void Renderer::initVulkan() {
     // Spawn terrain
     createTerrainEntity(&m_gameWorld);
 
-    //spawnModel("../../Assets/Models/output.obj","../../Assets/Textures/heightmap_terrain.png",{0.0f,0.0f,0.0f});
+    bbl::EntityID emmaID=spawnModel("../../Assets/Models/Emma.obj","../../Assets/Textures/notexture.jpg",{-100.0f,0.0f,-100.0f});
+    if (emmaID != bbl::INVALID_ENTITY)
+    {
+        bbl::Transform* tf = entityManager->getComponent<bbl::Transform>(emmaID);
+        if(tf)
+        {
+            tf->scale=glm::vec3(30.0f);
+            tf->rotation.x=glm::radians(90.0f);
+            tf->rotation.z=glm::radians(-40.0f);
+        }
+        bbl::Collision collider{};
+        //collider.colliderSize = glm::vec3(1.0f, 2.0f, 1.0f);
+        collider.ignoreTerrain =true;
+        entityManager->addComponent<bbl::Collision>(emmaID, collider);
+    }
+
 
     qDebug() << "How many entities in the scene?:" << entityManager->getEntityCount();
 

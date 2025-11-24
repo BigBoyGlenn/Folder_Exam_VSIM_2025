@@ -40,6 +40,8 @@ void bbl::GameWorld::initializeSystems(EntityManager* entityManager)
 
 void bbl::GameWorld::update(float dt)
 {
+    if(!m_isPlaying) return;
+
     if (m_physicsSystem) {
         m_physicsSystem->update(dt);
     }

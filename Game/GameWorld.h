@@ -26,8 +26,8 @@ public:
             m_collisionSystem->setTerrainEntity(terrainID);
         }
     }
-
     void initializeSystems(EntityManager* entityManager);
+    void setPlaying(bool playing){m_isPlaying=playing;}
 
 private:
     std::unique_ptr<Terrain> m_terrain;
@@ -35,6 +35,7 @@ private:
     std::unique_ptr<CollisionSystem> m_collisionSystem;
 
     bool m_terrainLoaded{false};
+    bool m_isPlaying = false;
 };
 
 } // namespace bbl
