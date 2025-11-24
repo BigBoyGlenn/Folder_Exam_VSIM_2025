@@ -287,12 +287,14 @@ void MainWindow::onButton1Clicked()
     bbl::EntityID entityID = mVulkanWindow->spawnModel(
         "../../Assets/Models/Ball2.obj",
         "../../Assets/Textures/Blue.jpg",
-        glm::vec3(10.0f, 00.0f, 0.0f)
+        glm::vec3(10.0f, 100.0f, 0.0f)
         );
 
     auto* entityManager = mVulkanWindow->getEntityManager();
     auto* sceneManager = mVulkanWindow->getSceneManager();
     if (entityManager && entityID != bbl::INVALID_ENTITY) {
+        bbl::Collision collision{};
+        collision.colliderSize = glm::vec3(1.0f);
         entityManager->addComponent<bbl::Physics>(entityID, bbl::Physics{});
         entityManager->addComponent<bbl::Collision>(entityID, bbl::Collision{});
         entityManager->addComponent<bbl::Audio>(entityID, bbl::Audio{});
@@ -312,8 +314,6 @@ void MainWindow::onButton1Clicked()
 
 void MainWindow::onButton2Clicked()
 {
-    mVulkanWindow->spawnTerrain();
-    mVulkanWindow->requestUpdate();
     updateSceneObjectList();
 }
 

@@ -30,6 +30,7 @@ void bbl::GameWorld::initializeSystems(EntityManager* entityManager)
     // Physics System
     m_physicsSystem = std::make_unique<PhysicsSystem>(entityManager);
     m_physicsSystem->setGravity(glm::vec3(0.0f, -9.81f, 0.0f));
+    m_physicsSystem->setTerrain(m_terrain.get());
 
     // Collision System
     m_collisionSystem = std::make_unique<CollisionSystem>(entityManager, m_terrain.get());
@@ -39,11 +40,10 @@ void bbl::GameWorld::initializeSystems(EntityManager* entityManager)
 
 void bbl::GameWorld::update(float dt)
 {
-    if (m_collisionSystem) {
-        m_collisionSystem->update(dt);
-    }
     if (m_physicsSystem) {
         m_physicsSystem->update(dt);
     }
-
+    if (m_collisionSystem) {
+        m_collisionSystem->update(dt);
+    }
 }

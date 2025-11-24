@@ -199,6 +199,43 @@ void Terrain::calculateNormals()
     }
 }
 
+//----------------- Get normals -----------------------
+glm::vec3 Terrain::getNormalAt(float worldX, float worldZ) const
+{
+    // Use barycentric interpolation of triangle normals
+    if (m_vertices.empty()) return glm::vec3(0.0f, 1.0f, 0.0f);
+
+    float offsetX = -m_width * m_gridSpacing / 2.0f;
+    float offsetZ = -m_height * m_gridSpacing / 2.0f;
+
+    float localX = worldX - offsetX;
+    float localZ = worldZ - offsetZ;
+
+    int gridX = glm::clamp(int(localX / m_gridSpacing), 0, m_width - 2);
+    int gridZ = glm::clamp(int(localZ / m_gridSpacing), 0, m_height - 2);
+
+    float xCoord = (localX - gridX * m_gridSpacing) / m_gridSpacing;
+    float zCoord = (localZ - gridZ * m_gridSpacing) / m_gridSpacing;
+
+    int topLeftIndex = gridX + gridZ * m_width;
+    glm::vec3 a, b, c, normal;
+
+    if (xCoord + zCoord <= 1.0f)
+    {
+        a = m_vertices[topLeftIndex].pos;
+        b = m_vertices[topLeftIndex + 1].pos;
+        c = m_vertices[topLeftIndex + m_width].pos;
+    }
+    else
+    {
+        a = m_vertices[topLeftIndex + 1 + m_width].pos;
+        b = m_vertices[topLeftIndex + m_width].pos;
+        c = m_vertices[topLeftIndex + 1].pos;
+    }
+
+    normal = glm::normalize(glm::cross(b - a, c - a));
+    return normal;
+}
 //--------------- Barycentric interpolation -----------------------
 float Terrain::barycentric(const glm::vec2& p, const glm::vec3& a, const glm::vec3& b, const glm::vec3& c) const
 {

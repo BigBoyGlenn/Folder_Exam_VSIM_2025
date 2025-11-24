@@ -9,51 +9,48 @@ PhysicsSystem::PhysicsSystem(EntityManager* entityManager)
 
 void PhysicsSystem::update(float dt)
 {
-    if (!m_entityManager) {
-        return;
-    }
+    if (!m_entityManager) return;
 
-    std::vector<bbl::EntityID> physicsEntities = m_entityManager->getEntitiesWith<bbl::Physics, bbl::Transform>();
+    auto entities = m_entityManager->getEntitiesWith<Physics, Transform, Collision>();
 
-    for (EntityID entity : physicsEntities) {
+    for (auto entity : entities)
+    {
+        Physics* physics = m_entityManager->getComponent<Physics>(entity);
+        Transform* transform = m_entityManager->getComponent<Transform>(entity);
+        Collision* collision = m_entityManager->getComponent<Collision>(entity);
 
-        bbl::Physics* physics = m_entityManager->getComponent<bbl::Physics>(entity);
-        bbl::Transform* transform = m_entityManager->getComponent<bbl::Transform>(entity);
+        if (!physics || !transform || !collision) continue;
 
-        if (!physics || !transform) {
-            continue;
-        }
+        // Gravity
+        physics->acceleration = m_gravity;
 
-        bbl::Collision* collision = m_entityManager->getComponent<bbl::Collision>(entity);
-
-        // Apply gravity if enabled and not grounded
-        if (physics->useGravity && collision && !collision->isGrounded)
+        // Project gravity along the terrain slope
+        if (collision->isGrounded && m_terrain)
         {
-            physics->acceleration += m_gravity;
-        }
-        else if (collision && collision->isGrounded)
-        {
-            // Reset vertical velocity when grounded
-            physics->acceleration.y = 0.0f;
-            physics->velocity.y = 0.0f;
+            glm::vec3 terrainNormal = m_terrain->getNormalAt(transform->position.x, transform->position.z);
+            glm::vec3 gravityAlongSurface = m_gravity - glm::dot(m_gravity, terrainNormal) * terrainNormal;
+            physics->acceleration = gravityAlongSurface;
         }
 
-
-        // Update velocity: v = v + a * dt
+        // Integrate velocity and position
         physics->velocity += physics->acceleration * dt;
-
-        // Update position: p = p + v * dt
         transform->position += physics->velocity * dt;
 
-        // Reset acceleration for next frame
-        physics->acceleration = glm::vec3(0.0f);
+        // Rolling friction
+        if (collision->isGrounded)
+        {
+            physics->velocity *= 0.98f;
+        }
     }
 }
 
-void PhysicsSystem::setGravity(const glm::vec3& gravity) {
-    m_gravity = gravity;
+void PhysicsSystem::setGravity(const glm::vec3& g)
+{
+    m_gravity = g;
 }
 
-const glm::vec3& PhysicsSystem::getGravity() const {
-    return m_gravity;
+void PhysicsSystem::setTerrain(Terrain* terrain)
+{
+    m_terrain = terrain;
 }
+

@@ -31,6 +31,7 @@ public:
     int getHeight() const { return m_height; }
     float getGridSpacing() const { return m_gridSpacing; }
     glm::vec3 getCenter() const;
+    glm::vec3 getNormalAt(float worldX, float worldZ) const;
 
 private:
     void calculateNormals();

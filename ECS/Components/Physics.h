@@ -2,27 +2,26 @@
 #define PHYSICSSYSTEM_H
 
 #include "../../ECS/Entity/EntityManager.h"
+#include "../../Game/Terrain.h"
+
 #include <glm/glm.hpp>
 
 namespace bbl
 {
+
 class PhysicsSystem
 {
 public:
-    explicit PhysicsSystem(EntityManager* entityManager);
+    PhysicsSystem(EntityManager* entityManager);
 
-    void update(float deltaTime);
+    void update(float dt);
 
-
-    void setGravity(const glm::vec3& gravity);
-    const glm::vec3& getGravity() const;
-
-    void setEntityManager(EntityManager* entityManager) {
-        m_entityManager = entityManager;
-    }
+    void setGravity(const glm::vec3& g);
+    void setTerrain(Terrain* terrain);
 
 private:
     EntityManager* m_entityManager;
+    Terrain* m_terrain;
     glm::vec3 m_gravity{0.0f, -9.81f, 0.0f};
 };
 }
