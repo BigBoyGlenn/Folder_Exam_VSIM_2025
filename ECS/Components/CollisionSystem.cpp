@@ -176,22 +176,46 @@ void CollisionSystem::resolveCollision(EntityID entityA, EntityID entityB,
         separation.z = (delta.z > 0) ? overlapZ : -overlapZ;
     }
 
-    //push the entitys apart
-    transformA->position -= separation * 0.5f;
-    transformB->position += separation * 0.5f;
+    // Static
+    bool staticA=collisionA->isStatic;
+    bool staticB=collisionB->isStatic;
+
+    // Do nothing when both is static
+    if (staticA && staticB) return;
+
+    // Move B when A static
+    if (staticA)
+    {
+        transformB->position += separation;
+    }
+    // Move A when B static
+    else if (staticB)
+    {
+        transformB->position -= separation;
+    }
+
+    // Split movement
+    else
+    {
+        transformA->position -= separation*0.5f;
+        transformB->position += separation*0.5f;
+    }
+
+    glm::vec3 normal = glm::normalize(separation);
 
     // Stop their velocities in the collision direction
     Physics* physicsA = m_entityManager->getComponent<Physics>(entityA);
     Physics* physicsB = m_entityManager->getComponent<Physics>(entityB);
 
-    if (physicsA && physicsB) {
-        glm::vec3 normal = glm::normalize(separation);
+    if (physicsA && !staticA)
+    {
+        float v = glm::dot(physicsA->velocity, normal);
+        if (v > 0) physicsA->velocity -= v * normal;
+    }
 
-        // Remove velocity component along collision normal
-        float velA = glm::dot(physicsA->velocity, normal);
-        float velB = glm::dot(physicsB->velocity, normal);
-
-        if (velA < 0.0f) physicsA->velocity -= normal * velA;
-        if (velB > 0.0f) physicsB->velocity -= normal * velB;
+    if (physicsB && !staticB)
+    {
+        float v = glm::dot(physicsB->velocity, normal);
+        if (v < 0) physicsB->velocity -= v * normal;
     }
 }

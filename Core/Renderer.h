@@ -140,6 +140,7 @@
         VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
         VkPipeline graphicsPipeline;
+        VkPipeline line;
         VkPipeline phongPipeline;
 
         VkCommandPool commandPool;
@@ -203,7 +204,7 @@
         void createImageViews();
         void createRenderPass();
         void createDescriptorSetLayout();
-        void createGraphicsPipeline(std::string, std::string, VkPipeline&);
+        void createGraphicsPipeline(std::string, std::string, VkPipeline&, VkPrimitiveTopology);
         void createFramebuffers();
         void createCommandPool();
         void createColorResources();

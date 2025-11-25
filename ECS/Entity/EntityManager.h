@@ -58,7 +58,7 @@ public:
             addComponent(entity, Mesh{meshResourceID});
 
             // Create render component
-            addComponent(entity, Render{meshResourceID, 0, true, false, 1.0f});
+            addComponent(entity, Render{meshResourceID, 0, true, false, static_cast<bool>(1.0f)});
         }
 
         return entity;
@@ -225,6 +225,7 @@ public:
         mAudios.clear();
         mPhysicsComponents.clear();
         mCollisions.clear();
+        mTrace.clear();
         //mInputs.clear();
 
         mActiveEntities.clear();
@@ -240,6 +241,7 @@ private:
     std::unordered_map<EntityID, Audio> mAudios;
     std::unordered_map<EntityID, Physics> mPhysicsComponents;
     std::unordered_map<EntityID, Collision> mCollisions;
+    std::unordered_map<EntityID, Trace> mTrace;
     //std::unordered_map<EntityID, Input> mInputs;
 
     // Track active entities
@@ -256,6 +258,7 @@ private:
         mAudios.erase(entity);
         mPhysicsComponents.erase(entity);
         mCollisions.erase(entity);
+        mTrace.erase(entity);
         //mInputs.erase(entity);
     }
 };
@@ -297,6 +300,12 @@ template<>
 inline std::unordered_map<EntityID, Collision>& EntityManager::getComponentMap<Collision>() {
     return mCollisions;
 }
+
+template<>
+inline std::unordered_map<EntityID, Trace>& EntityManager::getComponentMap<Trace>() {
+    return mTrace;
+}
+
 
 // template<>
 // inline std::unordered_map<EntityID, Input>& EntityManager::getComponentMap<Input>() {

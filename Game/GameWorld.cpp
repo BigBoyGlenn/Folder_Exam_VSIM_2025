@@ -20,10 +20,15 @@ void bbl::GameWorld::Setup()
     }
 }
 
-void bbl::GameWorld::initializeSystems(EntityManager* entityManager)
+void bbl::GameWorld::initializeSystems(EntityManager* entityManager, GPUResourceManager *gpuResources)
 {
     if (!entityManager) {
         qWarning() << "Cannot initialize systems: EntityManager is null!";
+        return;
+    }
+    if(!gpuResources)
+    {
+        qWarning() << "Cannot initialize systems: GPUResourceManager is null!";
         return;
     }
 
@@ -36,6 +41,9 @@ void bbl::GameWorld::initializeSystems(EntityManager* entityManager)
     m_collisionSystem = std::make_unique<CollisionSystem>(entityManager, m_terrain.get());
     m_collisionSystem->setTerrainCollisionEnabled(true);
     m_collisionSystem->setEntityCollisionEnabled(true);
+
+    // Tracing system
+   m_tracing = std::make_unique<Tracing>(entityManager, gpuResources);
 }
 
 void bbl::GameWorld::update(float dt)
@@ -47,5 +55,8 @@ void bbl::GameWorld::update(float dt)
     }
     if (m_collisionSystem) {
         m_collisionSystem->update(dt);
+    }
+    if (m_tracing){
+        m_tracing->update(dt);
     }
 }

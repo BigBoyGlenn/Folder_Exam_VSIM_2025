@@ -299,6 +299,11 @@ void MainWindow::onButton1Clicked()
         entityManager->addComponent<bbl::Collision>(entityID, bbl::Collision{});
         entityManager->addComponent<bbl::Audio>(entityID, bbl::Audio{});
 
+        bbl::Trace trace{};
+        trace.sampleInterval = 0.05f;
+        trace.maxPoints = 200;
+        entityManager->addComponent<bbl::Trace>(entityID, trace);
+
         if (sceneManager) {
             sceneManager->setEntityName(entityID, "Ball");
             sceneManager->markSceneDirty();
@@ -418,6 +423,7 @@ void MainWindow::onSceneObjectSelected(QListWidgetItem* item)
         QVariantMap renderFields;
         renderFields["Visible"] = render->visible;
         renderFields["Use Phong"] = render->usePhong;
+        renderFields["Use Line"] = render->isLine;
         addComponentUI("Render Component", renderFields);
         componentCount++;
 
@@ -587,6 +593,10 @@ void MainWindow::addComponentUI(const QString& name, const QVariantMap& fields)
                             else if (field == "Use Phong")
                             {
                                 render->usePhong = valid;
+                            }
+                            else if (field == "Use Line")
+                            {
+                                render->isLine = valid;
                             }
                             mVulkanWindow->recreateSwapChain();
                             mVulkanWindow->requestUpdate();

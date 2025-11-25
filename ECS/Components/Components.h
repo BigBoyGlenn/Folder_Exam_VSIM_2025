@@ -63,6 +63,7 @@ struct Render
     size_t textureResourceID{0};
     bool visible{true};
     bool usePhong{false};
+    bool isLine{false};
     float opacity{1.0f};
 };
 
@@ -99,6 +100,15 @@ struct Physics
     glm::vec3 acceleration{0.0f, 0.0f, 0.0f};
     float mass{1.0f};
     bool useGravity{true};
+};
+
+struct Trace {
+    std::vector<glm::vec3> positions;
+    float sampleInterval = 0.1f;
+    float timeSinceLastSample = 0.0f;
+    size_t maxPoints = 100;
+    size_t meshResourceID = 0;
+    bool needsUpdate = false;
 };
 
 } // namespace bbl

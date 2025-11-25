@@ -91,8 +91,9 @@ void Renderer::initVulkan() {
     createImageViews();
     createRenderPass();
     createDescriptorSetLayout();
-    createGraphicsPipeline("Shaders/vert.spv", "Shaders/frag.spv", graphicsPipeline);
-    createGraphicsPipeline("Shaders/phong.vert.spv", "Shaders/phong.frag.spv", phongPipeline);
+    createGraphicsPipeline("Shaders/vert.spv", "Shaders/frag.spv", graphicsPipeline, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    createGraphicsPipeline("Shaders/phong.vert.spv", "Shaders/phong.frag.spv", phongPipeline, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    createGraphicsPipeline("Shaders/vert.spv", "Shaders/frag.spv", line, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
     createCommandPool();
     createColorResources();
     createDepthResources();
@@ -109,7 +110,7 @@ void Renderer::initVulkan() {
 
     // Initialize GameWorld and load terrain
     m_gameWorld.Setup();
-    m_gameWorld.initializeSystems(entityManager.get());
+    m_gameWorld.initializeSystems(entityManager.get(), GPUresources.get());
 
     // Create ModelLoader instance
     bbl::ModelLoader modelLoader;
@@ -127,19 +128,13 @@ void Renderer::initVulkan() {
     // Spawn terrain
     createTerrainEntity(&m_gameWorld);
 
-    bbl::EntityID emmaID=spawnModel("../../Assets/Models/Emma.obj","../../Assets/Textures/notexture.jpg",{-100.0f,0.0f,-100.0f});
+    bbl::EntityID emmaID=spawnModel("../../Assets/Models/Crate1.obj","../../Assets/Textures/notexture.jpg",{-61.0f,4.0f,-62.0f});
     if (emmaID != bbl::INVALID_ENTITY)
     {
-        bbl::Transform* tf = entityManager->getComponent<bbl::Transform>(emmaID);
-        if(tf)
-        {
-            tf->scale=glm::vec3(30.0f);
-            tf->rotation.x=glm::radians(90.0f);
-            tf->rotation.z=glm::radians(-40.0f);
-        }
         bbl::Collision collider{};
-        //collider.colliderSize = glm::vec3(1.0f, 2.0f, 1.0f);
+        collider.colliderSize = glm::vec3(1.0f, 2.0f, 1.0f);
         collider.ignoreTerrain =true;
+        collider.isStatic = true;
         entityManager->addComponent<bbl::Collision>(emmaID, collider);
     }
 
@@ -196,6 +191,7 @@ bbl::EntityID Renderer::spawnModel(const std::string& modelPath,
             // Update render component with texture
             if (auto* render = entityManager->getComponent<bbl::Render>(newEntity)) {
                 render->textureResourceID = textureResourceID;
+                render->isLine = false;
             }
         }
 
@@ -321,6 +317,7 @@ void Renderer::createTerrainEntity(bbl::GameWorld* gameWorld) {
 
     if (auto* renderComp = entityManager->getComponent<bbl::Render>(entity)) {
         renderComp->textureResourceID = textureResourceID;
+        renderComp->isLine = false;
     }
 
     m_gameWorld.setTerrainEntity(entity);
@@ -470,8 +467,9 @@ void Renderer::recreateSwapChain() {
     createSwapChain();
     createImageViews();
     createRenderPass();
-    createGraphicsPipeline("Shaders/vert.spv", "Shaders/frag.spv", graphicsPipeline);
-    createGraphicsPipeline("Shaders/phong.vert.spv", "Shaders/phong.frag.spv", phongPipeline);
+    createGraphicsPipeline("Shaders/vert.spv", "Shaders/frag.spv", graphicsPipeline, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    createGraphicsPipeline("Shaders/phong.vert.spv", "Shaders/phong.frag.spv", phongPipeline, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    createGraphicsPipeline("Shaders/vert.spv", "Shaders/frag.spv", line, VK_PRIMITIVE_TOPOLOGY_LINE_LIST);
     createColorResources();
     createDepthResources();
     createFramebuffers();
@@ -865,7 +863,7 @@ void Renderer::createDescriptorSetLayout() {
     }
 }
 
-void Renderer::createGraphicsPipeline(std::string vertPath, std::string fragPath, VkPipeline& Pipeline) {
+void Renderer::createGraphicsPipeline(std::string vertPath, std::string fragPath, VkPipeline& Pipeline, VkPrimitiveTopology topology) {
     auto vertShaderCode = readFile(PATH + vertPath);
     auto fragShaderCode = readFile(PATH + fragPath);
 
@@ -899,7 +897,7 @@ void Renderer::createGraphicsPipeline(std::string vertPath, std::string fragPath
     // 2. Input assembly
     VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
     inputAssembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    inputAssembly.topology = topology;
     inputAssembly.primitiveRestartEnable = VK_FALSE;
 
     // 3. Viewport & Scissor (Modified for dynamic state)
@@ -1794,7 +1792,11 @@ void Renderer::createCommandBuffers() {
             // Always bind descriptor set (regardless of visibility, this is for convenience sake)
             if (renderComp->usePhong == true) {
                 vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, phongPipeline);
-            } else {
+            }
+            else if (renderComp->isLine == true) {
+                vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, line);
+            }
+            else {
                 vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
             }
 
@@ -1817,6 +1819,28 @@ void Renderer::createCommandBuffers() {
             }
 
             ++entityIndex; // Always increment for consistent indexing
+        }
+
+        auto traceEntities = entityManager->getEntitiesWith<bbl::Trace>();
+        for (bbl::EntityID entity : traceEntities)
+        {
+            bbl::Trace* trace = entityManager->getComponent<bbl::Trace>(entity);
+            if (!trace || trace->meshResourceID ==0) continue;
+
+            const bbl::MeshGPUResources* meshRes = GPUresources->getMeshResources(trace->meshResourceID);
+            if(!meshRes) continue;
+
+            // Bind line pipeline
+            vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, line);
+
+            //Bind vertex and index buffer
+            VkBuffer vertexBuffers[] = {meshRes->vertexBuffer};
+            VkDeviceSize offsets[] = {0};
+            vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+            vkCmdBindIndexBuffer(commandBuffers[i], meshRes->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+            // Draw lines
+            vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(meshRes->indexCount), 1, 0, 0, 0);
         }
 
         vkCmdEndRenderPass(commandBuffers[i]);
