@@ -78,6 +78,16 @@
         bbl::EntityID spawnModel(const std::string& modelPath, const std::string& texturePath, const glm::vec3& basePosition);
         void recreateSwapChain();
 
+        void waitForDeviceIdle() {
+            if (device != VK_NULL_HANDLE) {
+                vkDeviceWaitIdle(device);
+            }
+        }
+
+        void markCommandBuffersStale() {
+            commandBuffersNeedRecreate = true;
+        }
+
     protected:
         //Qt event handlers - called when requestUpdate(); is called
         void exposeEvent(QExposeEvent* event) override;
@@ -253,6 +263,8 @@
 
         // Changed from index-based to EntityID-based selection
         std::optional<bbl::EntityID> mSelectedEntityID;
+
+        bool commandBuffersNeedRecreate = false;
     };
 
 

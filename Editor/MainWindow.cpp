@@ -28,6 +28,7 @@
 #include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QLineEdit>
+#include <qtimer.h>
 
 
 // Static logger widget
@@ -284,6 +285,11 @@ void MainWindow::on_action_Open_triggered()
 
 void MainWindow::onButton1Clicked()
 {
+    if (mVulkanWindow && mVulkanWindow->getGameWorld()->isPlaying())
+    {
+        mVulkanWindow->waitForDeviceIdle();
+    }
+
     bbl::EntityID entityID = mVulkanWindow->spawnModel(
         "../../Assets/Models/Ball2.obj",
         "../../Assets/Textures/Blue.jpg",
@@ -292,19 +298,20 @@ void MainWindow::onButton1Clicked()
 
     auto* entityManager = mVulkanWindow->getEntityManager();
     auto* sceneManager = mVulkanWindow->getSceneManager();
-    if (entityManager && entityID != bbl::INVALID_ENTITY) {
-        bbl::Collision collision{};
-        collision.colliderSize = glm::vec3(1.0f);
+
+    if (entityManager && entityID != bbl::INVALID_ENTITY)
+    {
         entityManager->addComponent<bbl::Physics>(entityID, bbl::Physics{});
         entityManager->addComponent<bbl::Collision>(entityID, bbl::Collision{});
         entityManager->addComponent<bbl::Audio>(entityID, bbl::Audio{});
 
-        bbl::Trace trace{};
+        /*bbl::Trace trace{};
         trace.sampleInterval = 0.05f;
         trace.maxPoints = 200;
-        entityManager->addComponent<bbl::Trace>(entityID, trace);
+        entityManager->addComponent<bbl::Trace>(entityID, trace);*/
 
-        if (sceneManager) {
+        if (sceneManager)
+        {
             sceneManager->setEntityName(entityID, "Ball");
             sceneManager->markSceneDirty();
         }
@@ -321,57 +328,57 @@ void MainWindow::onButton2Clicked()
 {
     auto* entityManager = mVulkanWindow->getEntityManager();
     auto* sceneManager  = mVulkanWindow->getSceneManager();
-
     if (!entityManager) return;
 
-    const int rows = 5;
-    const int cols = 5;
-    const float spacing = 40.0f;
+    const int totalBalls = 100;
 
-    int count = 0;
+    int* count = new int(0);
 
-    for (int r = 0; r < rows; r++)
-    {
-        for (int c = 0; c < cols; c++)
+    QTimer* timer = new QTimer(this);
+    connect(timer, &QTimer::timeout, this, [=]() mutable {
+
+        bbl::EntityID entityID = mVulkanWindow->spawnModel(
+            "../../Assets/Models/Ball2.obj",
+            "../../Assets/Textures/Blue.jpg",
+            glm::vec3(-60.0f, 10.0f, -60.0f)
+            );
+
+        if (entityID != bbl::INVALID_ENTITY)
         {
-            // Centered around origin
-            float x = (c - (cols - 1) * 0.5f) * spacing;
-            float y = 10.0f;
-            float z = (r - (rows - 1) * 0.5f) * spacing;
+            bbl::Physics physics{};
+            entityManager->addComponent<bbl::Physics>(entityID, physics);
 
-            bbl::EntityID entityID = mVulkanWindow->spawnModel(
-                "../../Assets/Models/Ball2.obj",
-                "../../Assets/Textures/Blue.jpg",
-                glm::vec3(x, y, z)
-                );
+            bbl::Collision collision{};
+            collision.colliderSize = {1.f,1.f,1.f};
+            collision.isFluid = true;
+            entityManager->addComponent<bbl::Collision>(entityID, collision);
 
-            if (entityID == bbl::INVALID_ENTITY)
-                continue;
-
-            // Add components
-            entityManager->addComponent<bbl::Physics>(entityID, bbl::Physics{});
-            entityManager->addComponent<bbl::Collision>(entityID, bbl::Collision{});
-            entityManager->addComponent<bbl::Audio>(entityID, bbl::Audio{});
-
-            // Name and notify scene
-            if (sceneManager) {
+            if (sceneManager)
                 sceneManager->setEntityName(entityID, "Ball");
-            }
 
-            count++;
+            (*count)++;
         }
-    }
 
-    if (sceneManager)
-        sceneManager->markSceneDirty();
+        if (sceneManager)
+            sceneManager->markSceneDirty();
 
-    qInfo() << "Spawned" << count << "balls.";
+        mVulkanWindow->recreateSwapChain();
+        mVulkanWindow->requestUpdate();
+        updateSceneObjectList();
 
-    mVulkanWindow->recreateSwapChain();
-    mVulkanWindow->requestUpdate();
-    updateSceneObjectList();
+        // Stop when enough balls spawned
+        if (*count >= totalBalls)
+        {
+            qInfo() << "Hose spawned" << *count << "fluid balls.";
+            timer->stop();
+            timer->deleteLater();
+            delete count;
+            updateSceneObjectList();
+        }
+    });
+
+    timer->start(50); // spawn one ball every 50 ms
 }
-
 
 void MainWindow::onSceneObjectSelected(QListWidgetItem* item)
 {

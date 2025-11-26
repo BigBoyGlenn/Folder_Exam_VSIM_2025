@@ -123,6 +123,8 @@ void CollisionSystem::checkEntityCollisions()
                 continue;
             }
 
+            if (collisionA->isFluid && collisionB->isFluid) continue;
+
             AABB aabbB = calculateAABB(*transformB, *collisionB);
 
             // Check if AABBs overlap

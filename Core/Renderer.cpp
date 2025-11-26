@@ -200,15 +200,7 @@ bbl::EntityID Renderer::spawnModel(const std::string& modelPath,
             sceneManager->setEntityName(newEntity, model->name);
             sceneManager->markSceneDirty();
         }
-
-
-
-
         qInfo() << QString::fromStdString(model->name) << "successfully spawned with EntityID:" << newEntity;
-
-        // Update spawn offset for next model
-        mNextSpawnOffset.x += 0.2f;
-        mNextSpawnOffset.z += 0.2f;
     } else {
         qWarning() << "Failed to spawn from" << QString::fromStdString(modelPath);
     }
@@ -1473,6 +1465,8 @@ void Renderer::createIndexBuffer() {
 
 void Renderer::createUniformBuffers()
 {
+    static const uint32_t MAX_ENTITIES = 10000;
+
     // Get renderable entities from EntityManager
     std::vector<bbl::EntityID> renderableEntities = entityManager->getEntitiesWith<bbl::Transform, bbl::Render>();
 
@@ -1483,11 +1477,10 @@ void Renderer::createUniformBuffers()
     size_t alignedUniformSize = (sizeof(UniformBufferObject) + minUboAlignment - 1) & ~(minUboAlignment - 1);
 
     // Use aligned size, not raw sizeof!
-    uint32_t maxEntities = std::max(1u, static_cast<uint32_t>(renderableEntities.size()));
-    VkDeviceSize bufferSize = alignedUniformSize * maxEntities;
+    VkDeviceSize bufferSize = alignedUniformSize * MAX_ENTITIES;
 
     qDebug() << "Creating uniform buffers:";
-    qDebug() << "  Entities:" << maxEntities;
+    qDebug() << "  Entities:" << MAX_ENTITIES;
     qDebug() << "  Raw UBO size:" << sizeof(UniformBufferObject);
     qDebug() << "  Aligned UBO size:" << alignedUniformSize;
     qDebug() << "  Total buffer size:" << bufferSize;
@@ -1793,7 +1786,7 @@ void Renderer::createCommandBuffers() {
             if (renderComp->usePhong == true) {
                 vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, phongPipeline);
             }
-            else if (renderComp->isLine == true) {
+            else if (renderComp->isLine) {
                 vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, line);
             }
             else {
@@ -1821,26 +1814,31 @@ void Renderer::createCommandBuffers() {
             ++entityIndex; // Always increment for consistent indexing
         }
 
-        auto traceEntities = entityManager->getEntitiesWith<bbl::Trace>();
-        for (bbl::EntityID entity : traceEntities)
+        // Render trace line only on play
+        if (m_gameWorld.isPlaying())
         {
-            bbl::Trace* trace = entityManager->getComponent<bbl::Trace>(entity);
-            if (!trace || trace->meshResourceID ==0) continue;
+            auto traceEntities = entityManager->getEntitiesWith<bbl::Trace>();
 
-            const bbl::MeshGPUResources* meshRes = GPUresources->getMeshResources(trace->meshResourceID);
-            if(!meshRes) continue;
-
-            // Bind line pipeline
+            // Bind line pipeline drawing all traces
             vkCmdBindPipeline(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, line);
 
-            //Bind vertex and index buffer
-            VkBuffer vertexBuffers[] = {meshRes->vertexBuffer};
-            VkDeviceSize offsets[] = {0};
-            vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-            vkCmdBindIndexBuffer(commandBuffers[i], meshRes->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+            for (bbl::EntityID entity : traceEntities)
+            {
+                bbl::Trace* trace = entityManager->getComponent<bbl::Trace>(entity);
+                if (!trace || trace->meshResourceID == 0) continue;
 
-            // Draw lines
-            vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(meshRes->indexCount), 1, 0, 0, 0);
+                const bbl::MeshGPUResources* meshRes = GPUresources->getMeshResources(trace->meshResourceID);
+                if (!meshRes || meshRes->indexCount == 0) continue;
+
+                // Bind vertex and index buffer
+                VkBuffer vertexBuffers[] = {meshRes->vertexBuffer};
+                VkDeviceSize offsets[] = {0};
+                vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
+                vkCmdBindIndexBuffer(commandBuffers[i], meshRes->indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+                // Draw lines
+                vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(meshRes->indexCount), 1, 0, 0, 0);
+            }
         }
 
         vkCmdEndRenderPass(commandBuffers[i]);
@@ -1909,8 +1907,7 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
     size_t alignedUniformSize = (sizeof(UniformBufferObject) + minUboAlignment - 1) & ~(minUboAlignment - 1);
 
     void* data = nullptr;
-    VkDeviceSize bufferSize = alignedUniformSize * renderableEntities.size();
-    vkMapMemory(device, uniformBuffersMemory[currentImage], 0, bufferSize, 0, &data);
+    vkMapMemory(device, uniformBuffersMemory[currentImage], 0, VK_WHOLE_SIZE, 0, &data);
     char* mappedData = static_cast<char*>(data);
 
     size_t entityIndex = 0;
@@ -1940,6 +1937,15 @@ void Renderer::updateUniformBuffer(uint32_t currentImage) {
 
 void Renderer::drawFrame()
 {
+    if (commandBuffersNeedRecreate)
+    {
+        vkDeviceWaitIdle(device);
+
+        vkFreeCommandBuffers(device, commandPool, static_cast<uint32_t>(commandBuffers.size()), commandBuffers.data());
+
+        createCommandBuffers();
+        commandBuffersNeedRecreate = false;
+    }
     vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
     uint32_t imageIndex;

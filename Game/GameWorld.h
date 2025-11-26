@@ -30,6 +30,7 @@ public:
     }
     void initializeSystems(EntityManager* entityManager, GPUResourceManager* gpuResources);
     void setPlaying(bool playing){m_isPlaying=playing;}
+    bool isPlaying() const {return m_isPlaying;}
 
 private:
     std::unique_ptr<Terrain> m_terrain;
