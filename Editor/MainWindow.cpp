@@ -305,10 +305,10 @@ void MainWindow::onButton1Clicked()
         entityManager->addComponent<bbl::Collision>(entityID, bbl::Collision{});
         entityManager->addComponent<bbl::Audio>(entityID, bbl::Audio{});
 
-        /*bbl::Trace trace{};
+        bbl::Trace trace{};
         trace.sampleInterval = 0.05f;
         trace.maxPoints = 200;
-        entityManager->addComponent<bbl::Trace>(entityID, trace);*/
+        entityManager->addComponent<bbl::Trace>(entityID, trace);
 
         if (sceneManager)
         {
@@ -335,7 +335,8 @@ void MainWindow::onButton2Clicked()
     int* count = new int(0);
 
     QTimer* timer = new QTimer(this);
-    connect(timer, &QTimer::timeout, this, [=]() mutable {
+    connect(timer, &QTimer::timeout, this, [=]() mutable
+    {
 
         bbl::EntityID entityID = mVulkanWindow->spawnModel(
             "../../Assets/Models/Ball2.obj",
@@ -366,7 +367,7 @@ void MainWindow::onButton2Clicked()
         mVulkanWindow->requestUpdate();
         updateSceneObjectList();
 
-        // Stop when enough balls spawned
+
         if (*count >= totalBalls)
         {
             qInfo() << "Hose spawned" << *count << "fluid balls.";
@@ -377,7 +378,7 @@ void MainWindow::onButton2Clicked()
         }
     });
 
-    timer->start(50); // spawn one ball every 50 ms
+    timer->start(50);
 }
 
 void MainWindow::onSceneObjectSelected(QListWidgetItem* item)
