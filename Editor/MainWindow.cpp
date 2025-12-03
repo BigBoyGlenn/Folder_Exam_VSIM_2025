@@ -305,10 +305,10 @@ void MainWindow::onButton1Clicked()
         entityManager->addComponent<bbl::Collision>(entityID, bbl::Collision{});
         entityManager->addComponent<bbl::Audio>(entityID, bbl::Audio{});
 
-        bbl::Trace trace{};
+        /*bbl::Trace trace{};
         trace.sampleInterval = 0.05f;
         trace.maxPoints = 200;
-        entityManager->addComponent<bbl::Trace>(entityID, trace);
+        entityManager->addComponent<bbl::Trace>(entityID, trace);*/
 
         if (sceneManager)
         {
